@@ -37,7 +37,7 @@ while (np.any(cov_meters == 0)):
     #print(indices[0],"pole added")
     # find the corresponding column in the matrix
     x = Adj_pm[:, indices[0]]
-    #j += 1
+    
     # find the meters covered by this pole and add to overall covered meters
     # and set the corresponding row of the meter to zero
     met_poles = np.argwhere(x == 1) # orders of 10-4
@@ -64,7 +64,7 @@ while (np.any(cov_meters == 0)):
                 cov_meters[int(x)] -= 1
                 #print(x, "   ", cov_meters[x])
     #print(time.time()-st)
-    #print(cov_meters)
+    
     print(np.sum(cov_meters != 0))
 print((time.time() - start_time))
 print(len(list_cov_poles))
