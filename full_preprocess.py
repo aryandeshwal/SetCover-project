@@ -4,12 +4,12 @@ from numba import njit
 import logging
 
 # CONSTANTS
-NO_METERS_P = 108
-NO_POLES_P = 117
-NO_METERS_C = 7172
-NO_POLES_C = 6550
+NO_METERS_C = 108
+NO_POLES_C = 117
+#NO_METERS_C = 7172
+#NO_POLES_C = 6550
 # Preprocessing included greedy algorithm
-data_file = np.loadtxt('cap360.txt', dtype=np.int32)
+data_file = np.loadtxt('phase1.txt', dtype=np.int32)
 # Create a meters x poles matrix
 Adj_pm = np.zeros((NO_METERS_C, NO_POLES_C))
 # another modifiable matrix 
@@ -25,7 +25,7 @@ def preprocessing_rows(a):
     x, y = a.shape
     contained = np.zeros(x, dtype=np.bool_)
     for i in range(x):
-        #print(i)
+        print(i)
         if (np.sum(a[i]) == 0): continue
         for j in range(i+1, x):
             if i != j and not contained[j]:
@@ -37,20 +37,36 @@ def preprocessing_rows(a):
                 contained[j] = equal
     return contained
 
-@njit 
+# @njit 
+# def preprocessing_cols(a):
+#     x, y = a.shape
+#     contained = np.zeros(x, dtype=np.bool_)
+#     for i in range(x):
+#         print(i)
+#         if (np.sum(a[i]) == 0): continue
+#         for j in range(i+1, x):
+#             #if (np.sum(a[j]) == 0): continue
+#             if i != j and not contained[j]:
+#                 equal = True
+#                 for k in range(y):
+#                     if a[i, k] < a[j, k]:
+#                         equal = False
+#                         break
+#                 contained[j] = equal
+#     return contained
+
 def preprocessing_cols(a):
-    x, y = a.shape
-    contained = np.zeros(x, dtype=np.bool_)
-    for i in range(x):
-        for j in range(i+1, x):
-            if i != j and not contained[j]:
-                equal = True
-                for k in range(y):
-                    if a[i, k] < a[j, k]:
-                        equal = False
-                        break
-                contained[j] = equal
+    contained = np.zeros(NO_POLES_C, dtype=np.bool_)
+    for i in range(NO_POLES_C):
+        print(i)
+        contains = np.argwhere(np.all(a[i, :] >= a, axis = 1))
+        if (contains.shape[0] > 1):
+            for j in contains:
+                if j > i:
+                    contained[j] = True
     return contained
+
+
 
 def configure_logger():
     global logger
@@ -85,18 +101,23 @@ while (np.any(cov_meters == 0)):
                 cov_meters[met_poles] += 1
                 Mod_adj_pm[met_poles, :] = 0 
                 print("Pole", pole, " added covering ", singleton_rows[i], "row")
-                
+
     # 2. Removing rows that contain row j
     print(Mod_adj_pm)
-    contains = preprocessing_rows(Mod_adj_pm)
-    print(contains)
-    Mod_adj_pm[contains] = 0
-    cov_meters[contains] += 1
-    #print(np.sum(cov_meters != 0))
+    # st = time.time()
+    # contains = preprocessing_rows(Mod_adj_pm)
+    # print(contains)
+    # Mod_adj_pm[contains] = 0
+    # cov_meters[contains] += 1
+    # print("row time", time.time() - st)
+    # #print(np.sum(cov_meters != 0))
     print("column preprocessing")
     # 3. Removing columns contained in column j
+    st = time.time()
     contains = preprocessing_cols(Mod_adj_pm.T)
     print(contains)
+    print("column time", time.time() - st)
+
     Mod_adj_pm[:, contains] = 0
     #cov_meters[contains] += 1
     #####################################################
