@@ -1,14 +1,15 @@
 import numpy as np
 import time
 from numba import njit
+import logging
 
 # CONSTANTS
-NO_METERS_C = 108
-NO_POLES_C = 117
-#NO_METERS_C = 7172
-#NO_POLES_C = 6550
+NO_METERS_P = 108
+NO_POLES_P = 117
+NO_METERS_C = 7172
+NO_POLES_C = 6550
 # Preprocessing included greedy algorithm
-data_file = np.loadtxt('phase1.txt', dtype=np.int32)
+data_file = np.loadtxt('cap360.txt', dtype=np.int32)
 # Create a meters x poles matrix
 Adj_pm = np.zeros((NO_METERS_C, NO_POLES_C))
 # another modifiable matrix 
@@ -51,6 +52,16 @@ def preprocessing_cols(a):
                 contained[j] = equal
     return contained
 
+def configure_logger():
+    global logger
+    logger_level = logging.DEBUG #if args.debug else logging.ERROR
+    logging.basicConfig(filename='resultslog.log',
+                            level=logger_level,
+                            filemode='w')  # use filemode='a' for APPEND
+
+logger = logging.getLogger(__name__)
+configure_logger()
+
 
 start_time = time.time()
 # Create an zero vector for covered meters (assigned 0 for uncovered meters)
@@ -74,7 +85,7 @@ while (np.any(cov_meters == 0)):
                 cov_meters[met_poles] += 1
                 Mod_adj_pm[met_poles, :] = 0 
                 print("Pole", pole, " added covering ", singleton_rows[i], "row")
-
+                
     # 2. Removing rows that contain row j
     print(Mod_adj_pm)
     contains = preprocessing_rows(Mod_adj_pm)
@@ -115,6 +126,9 @@ while (np.any(cov_meters == 0)):
             del list_cov_poles[j]
     print("no of poles:", len(list_cov_poles))
     print("no of covered meters:", np.sum(cov_meters != 0))
+    logger.debug("no of poles: %s"%(len(list_cov_poles)))
+    logger.debug("no of covered meters: %s"%(np.sum(cov_meters != 0)))
+
 print((time.time() - start_time))
 print(len(list_cov_poles))
 print(list_cov_poles)
