@@ -24,8 +24,9 @@ def preprocessing_rows(a):
     x, y = a.shape
     contained = np.zeros(x, dtype=np.bool_)
     for i in range(x):
-        print(i)
-        for j in range(x):
+        #print(i)
+        if (np.sum(a[i]) == 0): continue
+        for j in range(i+1, x):
             if i != j and not contained[j]:
                 equal = True
                 for k in range(y):
@@ -40,7 +41,7 @@ def preprocessing_cols(a):
     x, y = a.shape
     contained = np.zeros(x, dtype=np.bool_)
     for i in range(x):
-        for j in range(x):
+        for j in range(i+1, x):
             if i != j and not contained[j]:
                 equal = True
                 for k in range(y):
@@ -64,7 +65,7 @@ while (np.any(cov_meters == 0)):
     singleton_rows = [int(x) for x in np.argwhere(np.sum(Mod_adj_pm, axis = 1) == 1)] 
     # Add the poles corresponding to the first nps singleton row
     if singleton_rows: # if there is atleast one singleton row
-        for i in range(min(len(singleton_rows), nps)):
+        for i in range(len(singleton_rows)):
             if (np.sum(Mod_adj_pm[singleton_rows[i]]) == 1):
                 pole = int(np.argwhere(Mod_adj_pm[singleton_rows[i], :] == 1))
                 list_cov_poles.append(pole)        
@@ -75,24 +76,22 @@ while (np.any(cov_meters == 0)):
                 print("Pole", pole, " added covering ", singleton_rows[i], "row")
 
     # 2. Removing rows that contain row j
-    
+    print(Mod_adj_pm)
     contains = preprocessing_rows(Mod_adj_pm)
     print(contains)
     Mod_adj_pm[contains] = 0
     cov_meters[contains] += 1
-    print(np.sum(cov_meters != 0))
-
-    '''
+    #print(np.sum(cov_meters != 0))
+    print("column preprocessing")
     # 3. Removing columns contained in column j
-    contains = preprocessing_rows(Mod_adj_pm.T)
-    #print(contains)
+    contains = preprocessing_cols(Mod_adj_pm.T)
+    print(contains)
     Mod_adj_pm[:, contains] = 0
     #cov_meters[contains] += 1
-    '''
     #####################################################
     # Greedy Algorithm
     indices = np.argmax(np.sum(Mod_adj_pm, axis = 0))
-    
+    #break
     # add the best pole (indices)
     list_cov_poles.append(indices)
     # find the corresponding column in the matrix
