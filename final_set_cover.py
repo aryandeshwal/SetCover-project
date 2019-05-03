@@ -70,6 +70,7 @@ def greedy_run(file_name, pre_flag):
     Adj_pm, Mod_adj_pm, cov_meters = load_data(file_name)
     start_time = time.time()
     list_cov_poles = []     # list of covering poles
+    scores = np.sum(Mod_adj_pm, axis = 0)
     while (np.any(cov_meters == 0)): # until all meters are covered
         if (pre_flag == 'Y'):
             # Preprocessing (nps(no of preprocessing steps) times):    
@@ -97,7 +98,7 @@ def greedy_run(file_name, pre_flag):
 
         #####################################################
         # Greedy Algorithm
-        indices = np.argmax(np.sum(Mod_adj_pm, axis = 0)) # Finds the best pole
+        indices = np.argmax(scores) # Finds the best pole
         # add the best pole (indices)
         list_cov_poles.append(indices)
         # find the corresponding column in the matrix
@@ -106,20 +107,22 @@ def greedy_run(file_name, pre_flag):
         # and set the corresponding row of the meter to zero
         met_poles = [int(m) for m in np.argwhere(x == 1)] 
         cov_meters[met_poles] += 1
+        scores -= np.sum(Mod_adj_pm[met_poles], axis = 0)
         Mod_adj_pm[met_poles, :] = 0
         #####################################################
         # Clean up
-        clean_up_indices = []
-        for i in range(0, len(list_cov_poles)): # for each already selected pole(sp)
-            sp = list_cov_poles[i]
-            meters_by_sp = [int(m) for m in np.argwhere(Adj_pm[:, sp] == 1)] # meters covered by sp
-            if (np.any((cov_meters[meters_by_sp]-1) <= 0) == False):
-                clean_up_indices.append(i)
-                cov_meters[meters_by_sp] -= 1
-        for j in sorted(clean_up_indices, reverse=True):
-            del list_cov_poles[j]
-        print("no of poles:", len(list_cov_poles))
-        print("no of covered meters:", np.sum(cov_meters != 0))
+        if(len(list_cov_poles)%10 == 0):
+            clean_up_indices = []
+            for i in range(0, len(list_cov_poles)): # for each already selected pole(sp)
+                sp = list_cov_poles[i]
+                meters_by_sp = [int(m) for m in np.argwhere(Adj_pm[:, sp] == 1)] # meters covered by sp
+                if (np.any((cov_meters[meters_by_sp]-1) <= 0) == False):
+                    clean_up_indices.append(i)
+                    cov_meters[meters_by_sp] -= 1
+            for j in sorted(clean_up_indices, reverse=True):
+                del list_cov_poles[j]
+        #print("no of poles:", len(list_cov_poles))
+        #print("no of covered meters:", np.sum(cov_meters != 0))
 
     print("Running time:", (time.time() - start_time))
     print("Number of poles:",len(list_cov_poles))
@@ -157,10 +160,19 @@ def modified_greedy_run(file_name, pre_flag):
         # Modified Greedy Algorithm
         sum_rows = np.sum(Mod_adj_pm, axis = 1)
         min_poles_meter = np.min(sum_rows[np.nonzero(sum_rows)])
-        print(min_poles_meter)
+        #print(min_poles_meter)
+
         hard_to_cover = np.where(np.sum(Mod_adj_pm, axis = 1) == min_poles_meter)
-        scores = [np.sum(Mod_adj_pm[hard_to_cover], axis=0)] * np.sum(Mod_adj_pm, axis=0)
-        print(scores)
+        # scores = [np.sum(Mod_adj_pm[hard_to_cover], axis=0) > 0] * np.sum(Mod_adj_pm, axis=0) # Score 1
+        scores = [np.sum(Mod_adj_pm[hard_to_cover], axis=0)] * np.sum(Mod_adj_pm, axis=0) # Score 2
+        # Score 3 below
+        # max_t = 2 # maximum k for t-hard to cover 
+        # scores = np.sum(Mod_adj_pm, axis = 0)
+        # for t in range(int(min_poles_meter), int(min_poles_meter)+max_t):
+        #     t_hard_to_cover = np.where(np.sum(Mod_adj_pm, axis = 1) <= t)
+        #     #print((np.sum(Mod_adj_pm[t_hard_to_cover], axis = 0))**(1/(t-min_poles_meter+1)))
+        #     scores = scores * ((np.sum(Mod_adj_pm[t_hard_to_cover], axis = 0))**(1/(t-min_poles_meter+1)))
+
         indices = np.argmax(scores) # Finds the best pole
         # add the best pole (indices)
         list_cov_poles.append(indices)
@@ -173,27 +185,29 @@ def modified_greedy_run(file_name, pre_flag):
         Mod_adj_pm[met_poles, :] = 0
         #####################################################
         # Clean up
-        clean_up_indices = []
-        for i in range(0, len(list_cov_poles)): # for each already selected pole(sp)
-            sp = list_cov_poles[i]
-            meters_by_sp = [int(m) for m in np.argwhere(Adj_pm[:, sp] == 1)] # meters covered by sp
-            if (np.any((cov_meters[meters_by_sp]-1) <= 0) == False):
-                clean_up_indices.append(i)
-                cov_meters[meters_by_sp] -= 1
-        for j in sorted(clean_up_indices, reverse=True):
-            del list_cov_poles[j]
-        print("no of poles:", len(list_cov_poles))
-        print("no of covered meters:", np.sum(cov_meters != 0))
+        #if(len(list_cov_poles) > 500):
+        if(len(list_cov_poles)%30 == 0):
+            clean_up_indices = []
+            for i in range(0, len(list_cov_poles)): # for each already selected pole(sp)
+                sp = list_cov_poles[i]
+                meters_by_sp = [int(m) for m in np.argwhere(Adj_pm[:, sp] == 1)] # meters covered by sp
+                if (np.any((cov_meters[meters_by_sp]-1) <= 0) == False):
+                    clean_up_indices.append(i)
+                    cov_meters[meters_by_sp] -= 1
+            for j in sorted(clean_up_indices, reverse=True):
+                del list_cov_poles[j]
+        #print("no of poles:", len(list_cov_poles))
+        #print("no of covered meters:", np.sum(cov_meters != 0))
 
     print("Running time:", (time.time() - start_time))
     print("Number of poles:",len(list_cov_poles))
 
 
 if __name__ == '__main__':
-    print("Enter dataset:")
+    #print("Enter dataset:")
     #file_name = input()
-    print("Preprocessing (Y|N)")
+    #print("Preprocessing (Y|N)")
     #pre_flag = input()
     #modified_greedy_run(file_name, pre_flag)
 
-    modified_greedy_run('phase1', 'N')
+    modified_greedy_run('cap360', 'N')
